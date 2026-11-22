@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Close Shift & Setor Omset</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-badge">KDKMP • REKAP HARIAN</div>
+      <h1>Close Shift &amp; Setor Omset</h1>
+      <p class="subtitle">Pencatatan tutup shift gerai dan penyetoran omset ke rekening kantor</p>
+    </header>
+
+    <main class="container">
+      <div id="alertBox" class="alert" role="alert"></div>
+
+      <!-- VIEW 1: LOGIN -->
+      <section id="viewLogin">
+        <div class="section-head">
+          <h2>Masuk ke Akun</h2>
+          <p>Gunakan email dan password yang sudah aktif</p>
+        </div>
+        <form id="formLogin">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" required placeholder="nama@email.com" />
+          </div>
+          <div class="form-group">
+            <label for="loginPass">Password</label>
+            <input type="password" id="loginPass" required placeholder="Masukkan password" />
+          </div>
+          <button type="submit" id="btnLogin" class="btn-primary">Masuk</button>
+        </form>
+        <div class="switch-link">
+          Belum punya akun? <a href="#" onclick="switchView('viewRegister')">Registrasi akun baru</a>
+        </div>
+      </section>
+
+      <!-- VIEW 2: REGISTRASI -->
+      <section id="viewRegister" class="hidden">
+        <div class="section-head">
+          <h2>Registrasi Akun Sales</h2>
+          <p>Pilih KDKMP terdaftar sesuai penugasan Anda</p>
+        </div>
+        <form id="formRegister">
+          <div class="form-group">
+            <label for="regNama">Nama Lengkap</label>
+            <input type="text" id="regNama" required placeholder="Contoh: Budi Santoso" />
+          </div>
+          <div class="form-group">
+            <label for="regEmail">Email</label>
+            <input type="email" id="regEmail" required placeholder="nama@email.com" />
+          </div>
+          <div class="form-group">
+            <label for="regHp">No HP / WhatsApp</label>
+            <input type="tel" id="regHp" required placeholder="081234567890" />
+          </div>
+
+          <div class="form-divider"><span>Penempatan KDKMP</span></div>
+
+          <div class="form-group">
+            <label for="regKabupaten">Kabupaten / Kota</label>
+            <select id="regKabupaten" required>
+              <option value="">-- Memuat data wilayah... --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="regKecamatan">Kecamatan</label>
+            <select id="regKecamatan" required disabled>
+              <option value="">-- Pilih Kabupaten/Kota dulu --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="regKdkmp">KDKMP Terdaftar</label>
+            <select id="regKdkmp" required disabled>
+              <option value="">-- Pilih Kecamatan dulu --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="regPass">Password</label>
+            <input type="password" id="regPass" required minlength="6" placeholder="Minimal 6 karakter" />
+          </div>
+          <button type="submit" id="btnRegister" class="btn-primary">Daftar Akun</button>
+        </form>
+        <div class="switch-link">
+          Sudah punya akun? <a href="#" onclick="switchView('viewLogin')">Kembali ke Login</a>
+        </div>
+      </section>
+
+      <!-- VIEW 3: MENU UTAMA (CLOSE SHIFT & SETOR OMSET) -->
+      <section id="viewApp" class="hidden">
+        <div class="user-card" id="userInfo"></div>
+
+        <div class="tabs" role="tablist">
+          <button type="button" id="tabCloseShift" class="tab-btn active" role="tab" onclick="switchActivityTab('closeShift')">
+            <span class="tab-step">1</span>
+            <span>Close Shift</span>
+          </button>
+          <button type="button" id="tabSetorOmset" class="tab-btn" role="tab" onclick="switchActivityTab('setorOmset')">
+            <span class="tab-step">2</span>
+            <span>Setor Omset</span>
+          </button>
+        </div>
+
+        <!-- KEGIATAN 1: CLOSE SHIFT -->
+        <div id="panelCloseShift">
+          <form id="formCloseShift">
+            <div class="form-group">
+              <label for="shiftTanggal">Tanggal Transaksi</label>
+              <input type="date" id="shiftTanggal" required />
+              <small class="hint-text" id="usedDatesInfo">Memeriksa tanggal yang sudah terisi...</small>
+            </div>
+
+            <div class="form-group">
+              <label for="shiftOmset">Omset Harian (Rp)</label>
+              <input type="number" id="shiftOmset" required min="0" placeholder="150000" />
+              <small class="hint-text" id="shiftOmsetFormatted">Nominal: Rp 0</small>
+            </div>
+
+            <div class="form-group">
+              <label for="shiftBukti">Lampiran Bukti Close Shift (Gambar)</label>
+              <label for="shiftBukti" class="upload-box">
+                <span class="upload-title">Pilih atau ambil foto bukti Close Shift</span>
+                <span class="upload-sub">Format JPG, PNG, WEBP • Maksimal disarankan &lt; 5 MB</span>
+              </label>
+              <input type="file" id="shiftBukti" class="file-input-hidden" accept="image/*" required />
+              <div id="shiftFileName" class="file-name hidden"></div>
+              <img id="previewShiftBukti" class="img-preview hidden" alt="Preview Bukti Close Shift" />
+            </div>
+
+            <div class="form-group">
+              <label for="shiftCatatan">Catatan (Opsional)</label>
+              <textarea id="shiftCatatan" rows="2" placeholder="Keterangan tutup shift gerai"></textarea>
+            </div>
+
+            <button type="submit" id="btnCloseShift" class="btn-primary">Simpan Close Shift</button>
+          </form>
+        </div>
+
+        <!-- KEGIATAN 2: SETOR OMSET (AUTOFILL DARI CLOSE SHIFT) -->
+        <div id="panelSetorOmset" class="hidden">
+          <form id="formSetorOmset">
+            <div class="form-group">
+              <label for="selectShiftRef">Pilih Data Close Shift Tersimpan</label>
+              <select id="selectShiftRef" required>
+                <option value="">-- Memuat data Close Shift... --</option>
+              </select>
+            </div>
+
+            <div class="autofill-box">
+              <div class="autofill-title">Data Close Shift Terisi Otomatis</div>
+              <div class="grid-2">
+                <div class="form-group compact">
+                  <label for="setorTanggal">Tanggal Transaksi</label>
+                  <input type="text" id="setorTanggal" readonly required placeholder="-" />
+                </div>
+                <div class="form-group compact">
+                  <label for="setorOmsetShift">Omset Close Shift (Rp)</label>
+                  <input type="number" id="setorOmsetShift" readonly required placeholder="0" />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group compact">
+                  <label for="setorKabupaten">Kabupaten / Kota</label>
+                  <input type="text" id="setorKabupaten" readonly required placeholder="-" />
+                </div>
+                <div class="form-group compact">
+                  <label for="setorKecamatan">Kecamatan</label>
+                  <input type="text" id="setorKecamatan" readonly required placeholder="-" />
+                </div>
+              </div>
+
+              <div class="form-group compact">
+                <label for="setorKdkmp">Nama KDKMP</label>
+                <input type="text" id="setorKdkmp" readonly required placeholder="-" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="setorNominalTransfer">Nominal Transfer ke Rekening Kantor (Rp)</label>
+              <input type="number" id="setorNominalTransfer" required min="0" placeholder="Masukkan nominal transfer" />
+              <small class="hint-text" id="selisihInfo">Pilih data Close Shift untuk melihat ringkasan transfer.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="setorBukti">Lampiran Bukti Transfer (Gambar)</label>
+              <label for="setorBukti" class="upload-box">
+                <span class="upload-title">Pilih atau ambil foto bukti transfer</span>
+                <span class="upload-sub">Struk transfer / mutasi rekening kantor (JPG, PNG, WEBP)</span>
+              </label>
+              <input type="file" id="setorBukti" class="file-input-hidden" accept="image/*" required />
+              <div id="setorFileName" class="file-name hidden"></div>
+              <img id="previewSetorBukti" class="img-preview hidden" alt="Preview Bukti Transfer" />
+            </div>
+
+            <div class="form-group">
+              <label for="setorCatatan">Catatan Setor / Bukti Transfer</label>
+              <textarea id="setorCatatan" rows="2" placeholder="Contoh: Transfer BCA a.n. Kantor / No. Ref"></textarea>
+            </div>
+
+            <button type="submit" id="btnSetorOmset" class="btn-primary">Simpan Setor Omset</button>
+          </form>
+        </div>
+
+        <div class="footer-actions">
+          <button type="button" id="btnToAdmin" class="btn-secondary hidden" onclick="switchView('viewAdmin')">
+            Approval Akun Baru (Admin)
+          </button>
+          <button type="button" class="btn-logout" onclick="logout()">Keluar (Logout)</button>
+        </div>
+      </section>
+
+      <!-- VIEW 4: PANEL APPROVAL ADMIN -->
+      <section id="viewAdmin" class="hidden">
+        <div class="section-head">
+          <h2>Approval Akun Baru</h2>
+          <p>Kelola persetujuan pendaftaran akun sales</p>
+        </div>
+        <div id="pendingList" class="pending-list">Memuat data...</div>
+        <div class="footer-actions">
+          <button type="button" class="btn-secondary" onclick="switchView('viewApp')">Kembali ke Menu Utama</button>
+          <button type="button" class="btn-logout" onclick="logout()">Keluar (Logout)</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
