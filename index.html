@@ -2,276 +2,450 @@
 <html lang="id">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Close Shift &amp; Setor Omset</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rekap Sales & Setor Omset - KDKMP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <div class="app-shell">
-        <header class="app-header">
-            <div class="brand-badge">KDKMP • REKAP HARIAN</div>
-            <h1>Close Shift &amp; Setor Omset</h1>
-            <p class="subtitle">Pencatatan tutup shift gerai dan penyetoran omset ke rekening kantor</p>
-        </header>
 
-        <main class="container">
-            <div id="alertBox" class="alert" role="alert"></div>
+    <!-- LOADING OVERLAY -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="spinner-border text-success" role="status"></div>
+        <p class="mt-2 fw-semibold text-dark" id="loadingText">Memuat data...</p>
+    </div>
 
-            <!-- VIEW 1: LOGIN -->
-            <section id="viewLogin">
-                <div class="section-head">
-                    <h2>Masuk ke Akun</h2>
-                    <p>Gunakan email dan password yang sudah aktif</p>
-                </div>
-                <form id="formLogin">
-                    <div class="form-group">
-                        <label for="loginEmail">Email</label>
-                        <input type="email" id="loginEmail" required placeholder="nama@email.com" />
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPass">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="loginPass" required placeholder="Masukkan password" />
-                            <button type="button" class="btn-toggle-pass" aria-label="Lihat atau sembunyikan password"
-                                onclick="togglePasswordVisibility('loginPass', this)">
-                                <i class="fa-regular fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <button type="submit" id="btnLogin" class="btn-primary">Masuk</button>
-                </form>
-                <div class="switch-link">
-                    Belum punya akun? <a href="javascript:void(0)" onclick="switchView('viewRegister')">Registrasi akun
-                        baru</a>
-                    <a href="https://dpules.github.io/RekapBandung/" target="_blank" rel="noopener noreferrer"
-                        class="btn-dashboard">
-                        <i class="fa-solid fa-chart-line"></i>
-                        <span>Lihat Dashboard</span>
-                    </a>
-                </div>
-            </section>
-
-            <!-- VIEW 2: REGISTRASI -->
-            <section id="viewRegister" class="hidden">
-                <div class="section-head">
-                    <h2>Registrasi Akun Sales</h2>
-                    <p>Pilih KDKMP terdaftar sesuai penugasan Anda</p>
-                </div>
-                <form id="formRegister">
-                    <div class="form-group">
-                        <label for="regNama">Nama Lengkap</label>
-                        <input type="text" id="regNama" required placeholder="Contoh: Deris Ganteng" />
-                    </div>
-                    <div class="form-group">
-                        <label for="regEmail">Email</label>
-                        <input type="email" id="regEmail" required placeholder="nama@email.com" />
-                    </div>
-                    <div class="form-group">
-                        <label for="regHp">No HP / WhatsApp</label>
-                        <input type="tel" id="regHp" required placeholder="081234567890" />
-                    </div>
-
-                    <div class="form-divider"><span>Penempatan KDKMP</span></div>
-
-                    <div class="form-group">
-                        <label for="regKabupaten">Kabupaten / Kota</label>
-                        <select id="regKabupaten" required>
-                            <option value="">-- Memuat data wilayah... --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="regKecamatan">Kecamatan</label>
-                        <select id="regKecamatan" required disabled>
-                            <option value="">-- Pilih Kabupaten/Kota dulu --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="regKdkmp">KDKMP Terdaftar</label>
-                        <select id="regKdkmp" required disabled>
-                            <option value="">-- Pilih Kecamatan dulu --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="regPass">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="regPass" required minlength="6"
-                                placeholder="Minimal 6 karakter" />
-                            <button type="button" class="btn-toggle-pass" aria-label="Lihat atau sembunyikan password"
-                                onclick="togglePasswordVisibility('regPass', this)">
-                                <i class="fa-regular fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <button type="submit" id="btnRegister" class="btn-primary">Daftar Akun</button>
-                </form>
-                <div class="switch-link">
-                    Sudah punya akun? <a href="javascript:void(0)" onclick="switchView('viewLogin')">Kembali ke
-                        Login</a>
-                    <a href="GANTI_LINK_DASHBOARD_DISINI" target="_blank" rel="noopener noreferrer"
-                        class="btn-dashboard">
-                        <i class="fa-solid fa-chart-line"></i>
-                        <span>Lihat Dashboard</span>
-                    </a>
-                </div>
-            </section>
-
-            <!-- VIEW 3: MENU UTAMA (CLOSE SHIFT & SETOR OMSET) -->
-            <section id="viewApp" class="hidden">
-                <div class="user-card" id="userInfo"></div>
-
-                <div class="tabs" role="tablist">
-                    <button type="button" id="tabCloseShift" class="tab-btn active" role="tab"
-                        onclick="switchActivityTab('closeShift')">
-                        <span class="tab-step">1</span>
-                        <span>Close Shift</span>
-                    </button>
-                    <button type="button" id="tabSetorOmset" class="tab-btn" role="tab"
-                        onclick="switchActivityTab('setorOmset')">
-                        <span class="tab-step">2</span>
-                        <span>Setor Omset</span>
-                    </button>
-                </div>
-
-                <!-- KEGIATAN 1: CLOSE SHIFT -->
-                <div id="panelCloseShift">
-                    <form id="formCloseShift">
-                        <div class="form-group">
-                            <label for="shiftTanggal">Tanggal Transaksi</label>
-                            <input type="date" id="shiftTanggal" required />
-                            <small class="hint-text" id="usedDatesInfo">Memeriksa tanggal yang sudah terisi...</small>
+    <!-- AUTH SECTION (LOGIN & REGISTER) -->
+    <div id="authSection" class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-4">
+                            <div class="brand-badge mx-auto mb-2"><i class="bi bi-shop"></i></div>
+                            <h4 class="fw-bold mb-1">Rekap Sales KDKMP</h4>
+                            <p class="text-muted small">Sistem Monitoring Close Shift & Setor Omset</p>
                         </div>
 
-                        <div class="form-group">
-                            <label for="shiftOmset">Omset Harian (Rp)</label>
-                            <input type="number" id="shiftOmset" required min="0" placeholder="150000" />
-                            <small class="hint-text" id="shiftOmsetFormatted">Nominal: Rp 0</small>
-                        </div>
+                        <ul class="nav nav-pills nav-fill mb-3" id="authTabs">
+                            <li class="nav-item">
+                                <button type="button" class="nav-link active" id="tabLogin"
+                                    onclick="switchAuthTab('login')">Masuk</button>
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="nav-link" id="tabRegister"
+                                    onclick="switchAuthTab('register')">Daftar Akun</button>
+                            </li>
+                        </ul>
 
-                        <div class="form-group">
-                            <label for="shiftBukti">Lampiran Bukti Close Shift (Gambar)</label>
-                            <label for="shiftBukti" class="upload-box">
-                                <span class="upload-title">Pilih atau ambil foto bukti Close Shift</span>
-                                <span class="upload-sub">Format JPG, PNG, WEBP • Maksimal disarankan &lt; 5 MB</span>
-                            </label>
-                            <input type="file" id="shiftBukti" class="file-input-hidden" accept="image/*" required />
-                            <div id="shiftFileName" class="file-name hidden"></div>
-                            <img id="previewShiftBukti" class="img-preview hidden" alt="Preview Bukti Close Shift" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="shiftCatatan">Catatan (Opsional)</label>
-                            <textarea id="shiftCatatan" rows="2" placeholder="Keterangan tutup shift gerai"></textarea>
-                        </div>
-
-                        <button type="submit" id="btnCloseShift" class="btn-primary">Simpan Close Shift</button>
-                    </form>
-                </div>
-
-                <!-- KEGIATAN 2: SETOR OMSET (AUTOFILL DARI CLOSE SHIFT) -->
-                <div id="panelSetorOmset" class="hidden">
-                    <form id="formSetorOmset">
-                        <div class="form-group">
-                            <label for="selectShiftRef">Pilih Data Close Shift Tersimpan</label>
-                            <select id="selectShiftRef" required>
-                                <option value="">-- Memuat data Close Shift... --</option>
-                            </select>
-                        </div>
-
-                        <div class="autofill-box">
-                            <div class="autofill-title">Data Close Shift Terisi Otomatis</div>
-                            <div class="grid-2">
-                                <div class="form-group compact">
-                                    <label for="setorTanggal">Tanggal Transaksi</label>
-                                    <input type="text" id="setorTanggal" readonly required placeholder="-" />
-                                </div>
-                                <div class="form-group compact">
-                                    <label for="setorOmsetShift">Omset Close Shift (Rp)</label>
-                                    <input type="number" id="setorOmsetShift" readonly required placeholder="0" />
+                        <!-- FORM LOGIN -->
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="loginEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="loginEmail" required
+                                    placeholder="nama@gmail.com" autocomplete="email">
+                            </div>
+                            <div class="mb-3">
+                                <label for="loginPassword" class="form-label">Password</label>
+                                <div class="input-group password-group">
+                                    <input type="password" class="form-control" id="loginPassword" required
+                                        placeholder="Masukkan password" autocomplete="current-password">
+                                    <button type="button" class="btn btn-outline-secondary toggle-password-btn"
+                                        onclick="togglePasswordVisibility('loginPassword', this)"
+                                        aria-label="Lihat atau sembunyikan password"
+                                        title="Lihat / Sembunyikan Password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
                                 </div>
                             </div>
+                            <button type="submit" class="btn btn-success w-100 fw-semibold py-2">Masuk</button>
+                        </form>
 
-                            <div class="grid-2">
-                                <div class="form-group compact">
-                                    <label for="setorKabupaten">Kabupaten / Kota</label>
-                                    <input type="text" id="setorKabupaten" readonly required placeholder="-" />
+                        <!-- FORM REGISTER -->
+                        <form id="registerForm" class="d-none">
+                            <div class="mb-2">
+                                <label for="regNama" class="form-label">Nama Lengkap</label>
+                                <input type="text" class="form-control" id="regNama" required placeholder="Nama Lengkap"
+                                    autocomplete="name">
+                            </div>
+                            <div class="mb-2">
+                                <label for="regEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="regEmail" required
+                                    placeholder="nama@gmail.com" autocomplete="email">
+                            </div>
+                            <div class="mb-2">
+                                <label for="regNoHp" class="form-label">No HP (WhatsApp)</label>
+                                <input type="tel" class="form-control" id="regNoHp" required placeholder="0812xxxxxxxx"
+                                    autocomplete="tel">
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-sm-6">
+                                    <label for="regKabupaten" class="form-label">Kabupaten/Kota</label>
+                                    <select class="form-select" id="regKabupaten" required
+                                        onchange="onRegKabupatenChange()">
+                                        <option value="">-- Memuat Kabupaten/Kota --</option>
+                                    </select>
                                 </div>
-                                <div class="form-group compact">
-                                    <label for="setorKecamatan">Kecamatan</label>
-                                    <input type="text" id="setorKecamatan" readonly required placeholder="-" />
+                                <div class="col-sm-6">
+                                    <label for="regKecamatan" class="form-label">Kecamatan</label>
+                                    <select class="form-select" id="regKecamatan" required
+                                        onchange="onRegKecamatanChange()" disabled>
+                                        <option value="">-- Pilih Kecamatan --</option>
+                                    </select>
                                 </div>
                             </div>
-
-                            <div class="form-group compact">
-                                <label for="setorKdkmp">Nama KDKMP</label>
-                                <input type="text" id="setorKdkmp" readonly required placeholder="-" />
+                            <div class="mb-2">
+                                <label for="regKdkmp" class="form-label">Penempatan KDKMP</label>
+                                <select class="form-select" id="regKdkmp" required disabled>
+                                    <option value="">-- Pilih KDKMP --</option>
+                                </select>
+                                <div class="form-text" id="regKdkmpCountInfo">Pilih Kabupaten/Kota dan Kecamatan
+                                    terlebih dahulu.</div>
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="setorNominalTransfer">Nominal Transfer ke Rekening Kantor (Rp)</label>
-                            <input type="number" id="setorNominalTransfer" required min="0"
-                                placeholder="Masukkan nominal transfer" />
-                            <small class="hint-text" id="selisihInfo">Pilih data Close Shift untuk melihat ringkasan
-                                transfer.</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="setorBukti">Lampiran Bukti Transfer (Gambar)</label>
-                            <label for="setorBukti" class="upload-box">
-                                <span class="upload-title">Pilih atau ambil foto bukti transfer</span>
-                                <span class="upload-sub">Struk transfer / mutasi rekening kantor (JPG, PNG, WEBP)</span>
-                            </label>
-                            <input type="file" id="setorBukti" class="file-input-hidden" accept="image/*" required />
-                            <div id="setorFileName" class="file-name hidden"></div>
-                            <img id="previewSetorBukti" class="img-preview hidden" alt="Preview Bukti Transfer" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="setorCatatan">Catatan Setor / Bukti Transfer</label>
-                            <textarea id="setorCatatan" rows="2"
-                                placeholder="Contoh: Transfer BCA a.n. Kantor / No. Ref"></textarea>
-                        </div>
-
-                        <button type="submit" id="btnSetorOmset" class="btn-primary">Simpan Setor Omset</button>
-                    </form>
+                            <div class="mb-3">
+                                <label for="regPassword" class="form-label">Password</label>
+                                <div class="input-group password-group">
+                                    <input type="password" class="form-control" id="regPassword" required minlength="6"
+                                        placeholder="Minimal 6 karakter" autocomplete="new-password">
+                                    <button type="button" class="btn btn-outline-secondary toggle-password-btn"
+                                        onclick="togglePasswordVisibility('regPassword', this)"
+                                        aria-label="Lihat atau sembunyikan password"
+                                        title="Lihat / Sembunyikan Password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">Daftar
+                                Sekarang</button>
+                        </form>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="footer-actions">
-                    <button type="button" id="btnToAdmin" class="btn-secondary hidden"
-                        onclick="switchView('viewAdmin')">
-                        Approval Akun Baru (Admin)
+    <!-- MAIN APP SECTION -->
+    <div id="appSection" class="d-none">
+        <!-- NAVBAR -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success sticky-top shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#"><i class="bi bi-shop me-2"></i>KDKMP Sales</a>
+                <div class="d-flex align-items-center text-white gap-3">
+                    <div class="text-end d-none d-sm-block">
+                        <div class="fw-semibold small" id="navUserName">-</div>
+                        <div class="badge bg-light text-success" id="navUserRole">-</div>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm" onclick="refreshData()" title="Muat Ulang Data">
+                        <i class="bi bi-arrow-clockwise"></i>
                     </button>
-                    <a href="https://dpules.github.io/RekapBandung/" target="_blank" rel="noopener noreferrer"
-                        class="btn-dashboard">
-                        <i class="fa-solid fa-chart-line"></i>
-                        <span>Lihat Dashboard</span>
-                    </a>
-                    <button type="button" class="btn-logout" onclick="logout()">Keluar (Logout)</button>
+                    <button class="btn btn-danger btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right"></i> Keluar
+                    </button>
                 </div>
-            </section>
+            </div>
+        </nav>
 
-            <!-- VIEW 4: PANEL APPROVAL ADMIN -->
-            <section id="viewAdmin" class="hidden">
-                <div class="section-head">
-                    <h2>Approval Akun Baru</h2>
-                    <p>Kelola persetujuan pendaftaran akun sales</p>
+        <div class="container py-4">
+            <!-- INFO OUTLET -->
+            <div
+                class="alert alert-success d-flex justify-content-between align-items-center flex-wrap gap-2 rounded-3 shadow-sm">
+                <div>
+                    <i class="bi bi-geo-alt-fill me-1"></i>
+                    <strong id="bannerKdkmp">Semua Outlet KDKMP (Mode Admin)</strong>
                 </div>
-                <div id="pendingList" class="pending-list">Memuat data...</div>
-                <div class="footer-actions">
-                    <button type="button" class="btn-secondary" onclick="switchView('viewApp')">Kembali ke Menu
-                        Utama</button>
-                    <a href="https://dpules.github.io/RekapBandung/" target="_blank" rel="noopener noreferrer"
-                        class="btn-dashboard">
-                        <i class="fa-solid fa-chart-line"></i>
-                        <span>Lihat Dashboard</span>
-                    </a>
-                    <button type="button" class="btn-logout" onclick="logout()">Keluar (Logout)</button>
+                <span class="small text-muted" id="lastUpdatedText">Terakhir diperbarui: -</span>
+            </div>
+
+            <!-- NAVIGATION TABS -->
+            <ul class="nav nav-tabs mb-4" id="mainTabs">
+                <li class="nav-item">
+                    <button class="nav-link active fw-semibold" data-target="tabDashboard"
+                        onclick="switchMainTab(this)">
+                        <i class="bi bi-bar-chart-line me-1"></i> Dashboard & Riwayat
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-semibold" data-target="tabCloseShift" onclick="switchMainTab(this)">
+                        <i class="bi bi-cash-coin me-1"></i> Input Close Shift
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-semibold" data-target="tabSetorOmset" onclick="switchMainTab(this)">
+                        <i class="bi bi-bank me-1"></i> Input Setor Omset
+                    </button>
+                </li>
+                <li class="nav-item d-none" id="navItemUsers">
+                    <button class="nav-link fw-semibold" data-target="tabUsers" onclick="switchMainTab(this)">
+                        <i class="bi bi-people me-1"></i> Approval Akun
+                    </button>
+                </li>
+            </ul>
+
+            <!-- TAB 1: DASHBOARD & RIWAYAT -->
+            <div id="tabDashboard" class="main-tab-pane">
+                <!-- FILTER BULAN & OUTLET -->
+                <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Filter Bulan</label>
+                        <input type="month" class="form-control" id="filterMonth" onchange="renderDashboard()">
+                    </div>
+                    <div class="col-md-4" id="filterKdkmpWrapper">
+                        <label class="form-label small fw-semibold">Filter Outlet KDKMP</label>
+                        <select class="form-select" id="filterKdkmp" onchange="renderDashboard()">
+                            <option value="ALL">Semua Outlet</option>
+                        </select>
+                    </div>
                 </div>
-            </section>
-        </main>
+
+                <!-- SUMMARY CARDS -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                            <div class="card-body">
+                                <div class="text-muted small">Total Omset Harian (CS)</div>
+                                <h5 class="fw-bold text-success mb-0 mt-1" id="sumOmsetCs">Rp 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100 border-start border-4 border-info">
+                            <div class="card-body">
+                                <div class="text-muted small">Total Non Tunai (CS / Setor)</div>
+                                <h5 class="fw-bold text-info mb-0 mt-1" id="sumNonTunai">Rp 0 / Rp 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+                            <div class="card-body">
+                                <div class="text-muted small">Total Transfer Setor</div>
+                                <h5 class="fw-bold text-primary mb-0 mt-1" id="sumTransfer">Rp 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+                            <div class="card-body">
+                                <div class="text-muted small">Selisih Setoran</div>
+                                <h5 class="fw-bold text-dark mb-0 mt-1" id="sumSelisih">Rp 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABEL REKAP TRANSAKSI -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-table me-2 text-success"></i>Riwayat Close Shift</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>ID Shift</th>
+                                    <th>KDKMP</th>
+                                    <th>Sales</th>
+                                    <th class="text-end">Omset Harian (Net)</th>
+                                    <th class="text-end">Non Tunai</th>
+                                    <th class="text-end">Bruto (Net + Non Tunai)</th>
+                                    <th>Catatan</th>
+                                    <th>Bukti</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyCloseShift"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white fw-bold py-3">
+                        <i class="bi bi-receipt me-2 text-primary"></i>Riwayat Setor Omset
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>ID Setor / Shift</th>
+                                    <th>KDKMP</th>
+                                    <th>Penyetor</th>
+                                    <th class="text-end">Omset CS</th>
+                                    <th class="text-end">Non Tunai</th>
+                                    <th class="text-end">Nominal Transfer</th>
+                                    <th class="text-end">Selisih</th>
+                                    <th>Bukti</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodySetorOmset"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: FORM CLOSE SHIFT -->
+            <div id="tabCloseShift" class="main-tab-pane d-none">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-success text-white fw-bold py-3 rounded-top-4">
+                        <i class="bi bi-cash-coin me-2"></i>Form Laporan Close Shift Harian
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="formCloseShift">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Tanggal Transaksi</label>
+                                    <input type="date" class="form-control" id="csTanggal" required>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label fw-semibold">Outlet KDKMP</label>
+                                    <select class="form-select" id="csKdkmp" required
+                                        onchange="autoFillWilayah('cs')"></select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Kabupaten/Kota</label>
+                                    <input type="text" class="form-control bg-light" id="csKabupaten" readonly required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Kecamatan</label>
+                                    <input type="text" class="form-control bg-light" id="csKecamatan" readonly required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Omset Close Shift (Rp)</label>
+                                    <input type="number" class="form-control" id="csOmset" min="0" required
+                                        placeholder="0" oninput="hitungEstimasiTunaiCS()">
+                                    <div class="form-text">Total omset sebelum dikurangi Non Tunai.</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-primary">Transaksi Non Tunai (Rp)</label>
+                                    <input type="number" class="form-control border-primary" id="csNonTunai" min="0"
+                                        value="0" required placeholder="0" oninput="hitungEstimasiTunaiCS()">
+                                    <div class="form-text">Total QRIS / EDC / Transfer langsung.</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-success">Omset Harian Masuk Sheet
+                                        (Rp)</label>
+                                    <input type="text" class="form-control bg-light fw-bold text-success"
+                                        id="csEstimasiTunai" readonly value="Rp 0">
+                                    <div class="form-text">Hasil: Omset Close Shift - Non Tunai.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Catatan (Opsional)</label>
+                                    <input type="text" class="form-control" id="csCatatan"
+                                        placeholder="Keterangan shift atau kendala">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Foto Bukti Close Shift</label>
+                                    <input type="file" class="form-control" id="csBukti" accept="image/*" required>
+                                </div>
+                            </div>
+                            <div class="mt-4 text-end">
+                                <button type="submit" class="btn btn-success px-4 py-2 fw-semibold">
+                                    <i class="bi bi-send me-1"></i> Kirim Laporan Close Shift
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: FORM SETOR OMSET -->
+            <div id="tabSetorOmset" class="main-tab-pane d-none">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-primary text-white fw-bold py-3 rounded-top-4">
+                        <i class="bi bi-bank me-2"></i>Form Laporan Setor Omset
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="formSetorOmset">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label class="form-label fw-semibold">Pilih Referensi ID Shift (Close Shift)</label>
+                                    <select class="form-select" id="soSelectShift" required
+                                        onchange="onSelectShiftForSetor()">
+                                        <option value="">-- Pilih Laporan Close Shift --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Tanggal Transaksi (Otomatis dari Close
+                                        Shift)</label>
+                                    <input type="date" class="form-control bg-light" id="soTanggal"
+                                        style="pointer-events: none;" tabindex="-1" required>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Outlet KDKMP</label>
+                                    <input type="text" class="form-control bg-light" id="soKdkmp" readonly required>
+                                </div>
+                                <input type="hidden" id="soKabupaten">
+                                <input type="hidden" id="soKecamatan">
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Omset Close Shift / Harian (Rp)</label>
+                                    <input type="number" class="form-control bg-light" id="soOmsetCs" readonly required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-primary">Non Tunai (Rp)</label>
+                                    <input type="number" class="form-control border-primary" id="soNonTunai" min="0"
+                                        value="0" required oninput="hitungSelisihSetor()">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-success">Nominal Transfer (Rp)</label>
+                                    <input type="number" class="form-control border-success" id="soNominalTransfer"
+                                        min="0" required oninput="hitungSelisihSetor()">
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Selisih Setoran (Rp)</label>
+                                    <input type="text" class="form-control bg-light fw-bold" id="soSelisihInfo" readonly
+                                        value="Rp 0">
+                                    <div class="form-text">Rumus: Nominal Transfer - Omset CS</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Catatan Setor (Opsional)</label>
+                                    <input type="text" class="form-control" id="soCatatan"
+                                        placeholder="Contoh: Setor via BRI / Mandiri">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Foto Bukti Transfer</label>
+                                    <input type="file" class="form-control" id="soBukti" accept="image/*" required>
+                                </div>
+                            </div>
+                            <div class="mt-4 text-end">
+                                <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                                    <i class="bi bi-check-circle me-1"></i> Simpan Setor Omset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: APPROVAL USERS (ADMIN ONLY) -->
+            <div id="tabUsers" class="main-tab-pane d-none">
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white fw-bold py-3">
+                        <i class="bi bi-people-fill me-2 text-success"></i>Manajemen & Approval Akun Sales
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama Lengkap</th>
+                                    <th>Email</th>
+                                    <th>No HP</th>
+                                    <th>Outlet KDKMP</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyUsers"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <script src="app.js"></script>
