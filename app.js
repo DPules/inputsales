@@ -1,6 +1,6 @@
 /**
  * FRONTEND LOGIC - REKAP SALES & SETOR OMSET KDKMP
- * Menggunakan GAS_WEB_APP_URL dan payload action yang kompatibel dengan Code.gs yang sudah ada
+ * Mendukung disambiguasi outlet kembar berdasarkan desa_kecamatan & kecamatan
  */
 const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyBs-njA5p7SukhDamHQ3hCg4-N4BqGFiY5T5-HfSKm2Xz3sQvDL9Yg7mZUhBsQb2B_/exec";
 
@@ -206,28 +206,82 @@ function normalizeDateForInput(dateVal) {
   return "";
 }
 
-function normalizeKdkmpKey(name) {
-  return String(name || "")
-    .trim()
+function buildDesaKecamatanSlug(namaKdkmp, kecamatan) {
+  let desa = String(namaKdkmp || "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b(kdkmp|kdmp|koperasi\s+desa\s+merah\s+putih|koperasi\s+desa|koperasi|desa|kelurahan)\b/gi, " ")
     .replace(/\s+/g, " ")
-    .toLowerCase();
+    .trim();
+
+  let kec = String(kecamatan || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b(kecamatan|kec\.?)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (kec) {
+    const escapedKec = kec.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const kecRegex = new RegExp(`(?:^|\\s)${escapedKec}(?:\\s|$)`, "i");
+    desa = desa.replace(kecRegex, " ").replace(/\s+/g, " ").trim();
+  }
+
+  const desaSlug = desa.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const kecSlug = kec.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+  if (desaSlug && kecSlug) return `${desaSlug}_${kecSlug}`;
+  return desaSlug || kecSlug || "";
+}
+
+function getItemDesaKecamatan(item) {
+  if (!item) return "";
+  const explicit = String(item.desaKecamatan ?? item.desa_kecamatan ?? "").trim().toLowerCase();
+  if (explicit) return explicit;
+  const nama = String(item.namaKdkmp ?? item.kdkmp ?? item["Nama KDKMP"] ?? "").trim();
+  const kec = String(item.kecamatan ?? item.Kecamatan ?? "").trim();
+  return buildDesaKecamatanSlug(nama, kec);
 }
 
 function normalizeMasterList(rawList) {
   const source = Array.isArray(rawList) && rawList.length > 0 ? rawList : FALLBACK_MASTER_KDKMP;
   return source
-    .map(item => ({
-      kabupaten: String(
-        item.kabupaten ?? item.kabupatenKota ?? item["Kabupaten/Kota"] ?? ""
-      ).trim(),
-      kecamatan: String(
-        item.kecamatan ?? item.Kecamatan ?? ""
-      ).trim(),
-      namaKdkmp: String(
-        item.namaKdkmp ?? item.NamaKDKMP ?? item["Nama KDKMP"] ?? ""
-      ).trim()
-    }))
+    .map(item => {
+      const kabupaten = String(item.kabupaten ?? item.kabupatenKota ?? item["Kabupaten/Kota"] ?? "").trim();
+      const kecamatan = String(item.kecamatan ?? item.Kecamatan ?? "").trim();
+      const namaKdkmp = String(item.namaKdkmp ?? item.NamaKDKMP ?? item["Nama KDKMP"] ?? "").trim();
+      const desaKecamatan = String(item.desaKecamatan ?? item.desa_kecamatan ?? "").trim().toLowerCase()
+        || buildDesaKecamatanSlug(namaKdkmp, kecamatan);
+
+      return {
+        kabupaten,
+        kecamatan,
+        namaKdkmp,
+        desaKecamatan,
+        desa_kecamatan: desaKecamatan
+      };
+    })
     .filter(item => item.kabupaten && item.kecamatan && item.namaKdkmp);
+}
+
+function getDuplicateNameSet(masterList) {
+  const counts = {};
+  masterList.forEach(item => {
+    const key = item.namaKdkmp.toLowerCase();
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  const dupSet = new Set();
+  Object.keys(counts).forEach(k => {
+    if (counts[k] > 1) dupSet.add(k);
+  });
+  return dupSet;
+}
+
+function formatOutletLabel(namaKdkmp, kecamatan, dupSet) {
+  if (!kecamatan) return namaKdkmp;
+  if (!dupSet || dupSet.has(String(namaKdkmp || "").toLowerCase())) {
+    return `${namaKdkmp} (Kec. ${kecamatan})`;
+  }
+  return namaKdkmp;
 }
 
 // ==========================================
@@ -362,7 +416,7 @@ function onRegKecamatanChange() {
     .sort((a, b) => a.namaKdkmp.localeCompare(b.namaKdkmp, "id"));
 
   filteredKdkmp.forEach(item => {
-    kdkmpSelect.innerHTML += `<option value="${item.namaKdkmp}">${item.namaKdkmp}</option>`;
+    kdkmpSelect.innerHTML += `<option value="${item.namaKdkmp}" data-slug="${item.desaKecamatan}">${item.namaKdkmp}</option>`;
   });
   kdkmpSelect.disabled = filteredKdkmp.length === 0;
 
@@ -407,10 +461,17 @@ async function handleLoginSubmit(e) {
 
 async function handleRegisterSubmit(e) {
   e.preventDefault();
-  const namaKdkmp = document.getElementById("regKdkmp").value;
-  if (!namaKdkmp) {
+  const kecamatan = document.getElementById("regKecamatan").value;
+  const kdkmpSelect = document.getElementById("regKdkmp");
+  const namaKdkmp = kdkmpSelect.value;
+  if (!kecamatan || !namaKdkmp) {
     return alert("Silakan pilih Kabupaten/Kota, Kecamatan, dan Penempatan KDKMP terlebih dahulu.");
   }
+
+  const selectedOpt = kdkmpSelect.options[kdkmpSelect.selectedIndex];
+  const desaKecamatan = (selectedOpt && selectedOpt.dataset.slug)
+    ? selectedOpt.dataset.slug
+    : buildDesaKecamatanSlug(namaKdkmp, kecamatan);
 
   showLoading("Mendaftarkan akun...");
   try {
@@ -419,7 +480,9 @@ async function handleRegisterSubmit(e) {
       nama: document.getElementById("regNama").value,
       email: document.getElementById("regEmail").value,
       noHp: document.getElementById("regNoHp").value,
+      kecamatan: kecamatan,
       namaKdkmp: namaKdkmp,
+      desaKecamatan: desaKecamatan,
       password: document.getElementById("regPassword").value
     });
     hideLoading();
@@ -445,6 +508,16 @@ function logout() {
 // ==========================================
 // INISIALISASI SESI APLIKASI & DATA
 // ==========================================
+function updateUserBanner() {
+  const isAdmin = currentUser.role === "Admin";
+  if (isAdmin) {
+    document.getElementById("bannerKdkmp").textContent = "Semua Outlet KDKMP (Mode Administrator)";
+  } else {
+    const kecLabel = currentUser.kecamatan ? ` (Kec. ${currentUser.kecamatan})` : "";
+    document.getElementById("bannerKdkmp").textContent = `Outlet: ${currentUser.namaKdkmp}${kecLabel}`;
+  }
+}
+
 async function initAppSession() {
   document.getElementById("authSection").classList.add("d-none");
   document.getElementById("appSection").classList.remove("d-none");
@@ -453,12 +526,12 @@ async function initAppSession() {
   document.getElementById("navUserRole").textContent = currentUser.role;
 
   const isAdmin = currentUser.role === "Admin";
+  updateUserBanner();
+
   if (isAdmin) {
-    document.getElementById("bannerKdkmp").textContent = "Semua Outlet KDKMP (Mode Administrator)";
     document.getElementById("navItemUsers").classList.remove("d-none");
     document.getElementById("filterKdkmpWrapper").classList.remove("d-none");
   } else {
-    document.getElementById("bannerKdkmp").textContent = `Outlet: ${currentUser.namaKdkmp}`;
     document.getElementById("navItemUsers").classList.add("d-none");
     document.getElementById("filterKdkmpWrapper").classList.add("d-none");
   }
@@ -469,20 +542,59 @@ async function initAppSession() {
 async function refreshData(highlightShiftId = null) {
   showLoading("Menyinkronkan data dengan Google Sheets...");
   try {
-    const res = await callGasApi({ action: "getInitData", user: currentUser });
+    // Jika sesi lama di localStorage belum punya kecamatan/desaKecamatan,
+    // minta data lengkap dulu lalu selaraskan profil user dari master/server
+    const needsProfileSync = currentUser && currentUser.role !== "Admin" && !getItemDesaKecamatan(currentUser);
+    const requestUserPayload = needsProfileSync ? null : currentUser;
+
+    const res = await callGasApi({ action: "getInitData", user: requestUserPayload });
     hideLoading();
+
     if (res.status === "success") {
+      const normalizedMaster = normalizeMasterList(res.masterKdkmp);
+
+      // Sinkronisasi profil currentUser jika belum memiliki kecamatan/desaKecamatan
+      if (currentUser && currentUser.role !== "Admin" && !getItemDesaKecamatan(currentUser)) {
+        // Cek dari data Close Shift / Setor Omset yang diinput oleh email user ini
+        const myCs = (res.closeShift || []).find(
+          c => String(c.emailSales || "").toLowerCase() === String(currentUser.email || "").toLowerCase() && c.kecamatan
+        );
+        const mySo = (res.setorOmset || []).find(
+          s => String(s.emailPenyetor || "").toLowerCase() === String(currentUser.email || "").toLowerCase() && s.kecamatan
+        );
+        const detectedKec = (myCs && myCs.kecamatan) || (mySo && mySo.kecamatan) || "";
+        if (detectedKec) {
+          currentUser.kecamatan = detectedKec;
+          currentUser.desaKecamatan = buildDesaKecamatanSlug(currentUser.namaKdkmp, detectedKec);
+          localStorage.setItem("kdkmp_user", JSON.stringify(currentUser));
+          updateUserBanner();
+        }
+      }
+
+      const userSlug = getItemDesaKecamatan(currentUser);
+      const isAdmin = currentUser.role === "Admin";
+
+      const filterByCurrentUser = (row) => {
+        if (isAdmin) return true;
+        const rowSlug = getItemDesaKecamatan(row);
+        if (userSlug && rowSlug) return rowSlug === userSlug;
+        return String(row.namaKdkmp || "").toLowerCase() === String(currentUser.namaKdkmp || "").toLowerCase();
+      };
+
       appData = {
         ...res,
-        masterKdkmp: normalizeMasterList(res.masterKdkmp)
+        masterKdkmp: normalizedMaster,
+        closeShift: (res.closeShift || []).filter(filterByCurrentUser),
+        setorOmset: (res.setorOmset || []).filter(filterByCurrentUser)
       };
+
       document.getElementById("lastUpdatedText").textContent =
         "Terakhir diperbarui: " + new Date().toLocaleTimeString("id-ID");
 
       populateKdkmpDropdowns();
       populateUnsettledShifts(highlightShiftId);
       renderDashboard();
-      if (currentUser.role === "Admin") {
+      if (isAdmin) {
         renderUsersTable();
       }
     }
@@ -501,32 +613,56 @@ function switchMainTab(btn) {
 }
 
 // ==========================================
-// DROPDOWN & KALKULASI FORM
+// DROPDOWN & KALKULASI FORM (UNIK PER DESA_KECAMATAN)
 // ==========================================
 function populateKdkmpDropdowns() {
   const isAdmin = currentUser.role === "Admin";
   const csSelect = document.getElementById("csKdkmp");
   const filterSelect = document.getElementById("filterKdkmp");
+  const dupSet = getDuplicateNameSet(appData.masterKdkmp);
+  const userSlug = getItemDesaKecamatan(currentUser);
+
+  const prevFilter = filterSelect.value || "ALL";
 
   csSelect.innerHTML = '<option value="">-- Pilih Outlet KDKMP --</option>';
   filterSelect.innerHTML = '<option value="ALL">Semua Outlet</option>';
 
   appData.masterKdkmp.forEach(item => {
-    filterSelect.innerHTML += `<option value="${item.namaKdkmp}">${item.namaKdkmp}</option>`;
-    if (isAdmin || item.namaKdkmp === currentUser.namaKdkmp) {
-      csSelect.innerHTML += `<option value="${item.namaKdkmp}">${item.namaKdkmp}</option>`;
+    const slug = item.desaKecamatan;
+    const label = formatOutletLabel(item.namaKdkmp, item.kecamatan, dupSet);
+
+    filterSelect.innerHTML += `<option value="${slug}" data-name="${item.namaKdkmp}" data-kec="${item.kecamatan}">${label}</option>`;
+
+    const isAllowed = isAdmin || (userSlug
+      ? slug === userSlug
+      : item.namaKdkmp === currentUser.namaKdkmp);
+
+    if (isAllowed) {
+      csSelect.innerHTML += `<option value="${slug}" data-name="${item.namaKdkmp}" data-kab="${item.kabupaten}" data-kec="${item.kecamatan}">${label}</option>`;
     }
   });
 
-  if (!isAdmin && currentUser.namaKdkmp) {
-    csSelect.value = currentUser.namaKdkmp;
+  if (prevFilter && [...filterSelect.options].some(o => o.value === prevFilter)) {
+    filterSelect.value = prevFilter;
+  }
+
+  if (!isAdmin) {
+    const targetSlug = userSlug || buildDesaKecamatanSlug(currentUser.namaKdkmp, currentUser.kecamatan);
+    if (targetSlug && [...csSelect.options].some(o => o.value === targetSlug)) {
+      csSelect.value = targetSlug;
+    } else if (csSelect.options.length > 1) {
+      csSelect.selectedIndex = 1;
+    }
     autoFillWilayah("cs");
   }
 }
 
 function autoFillWilayah(prefix) {
-  const selectedName = document.getElementById(`${prefix}Kdkmp`).value;
-  const found = appData.masterKdkmp.find(m => m.namaKdkmp === selectedName);
+  const selectEl = document.getElementById(`${prefix}Kdkmp`);
+  const selectedSlug = selectEl.value;
+  const found = appData.masterKdkmp.find(m => m.desaKecamatan === selectedSlug)
+    || appData.masterKdkmp.find(m => m.namaKdkmp === selectedSlug);
+
   document.getElementById(`${prefix}Kabupaten`).value = found ? found.kabupaten : "";
   document.getElementById(`${prefix}Kecamatan`).value = found ? found.kecamatan : "";
 }
@@ -542,6 +678,7 @@ function hitungEstimasiTunaiCS() {
 function populateUnsettledShifts(autoSelectIdShift = null) {
   const select = document.getElementById("soSelectShift");
   const settledShiftIds = new Set(appData.setorOmset.map(s => String(s.idShift).trim()));
+  const dupSet = getDuplicateNameSet(appData.masterKdkmp);
 
   select.innerHTML = '<option value="">-- Pilih Laporan Close Shift Belum Disetor --</option>';
 
@@ -549,7 +686,8 @@ function populateUnsettledShifts(autoSelectIdShift = null) {
 
   unsettled.forEach(cs => {
     const tglNorm = normalizeDateForInput(cs.tanggalTransaksi);
-    select.innerHTML += `<option value="${cs.idShift}">[${tglNorm || cs.tanggalTransaksi}] ${cs.namaKdkmp} - Omset Harian: ${formatRupiah(cs.omsetHarian)} (Non Tunai: ${formatRupiah(cs.nonTunai)})</option>`;
+    const outletLabel = formatOutletLabel(cs.namaKdkmp, cs.kecamatan, dupSet);
+    select.innerHTML += `<option value="${cs.idShift}">[${tglNorm || cs.tanggalTransaksi}] ${outletLabel} - Omset Harian: ${formatRupiah(cs.omsetHarian)} (Non Tunai: ${formatRupiah(cs.nonTunai)})</option>`;
   });
 
   if (autoSelectIdShift && unsettled.some(item => item.idShift === autoSelectIdShift)) {
@@ -611,22 +749,27 @@ async function handleCloseShiftSubmit(e) {
   if (!fileInput.files.length) return alert("Harap unggah foto bukti Close Shift.");
 
   const tanggalTransaksi = normalizeDateForInput(document.getElementById("csTanggal").value);
-  const namaKdkmp = String(document.getElementById("csKdkmp").value || "").trim();
+  const csSelect = document.getElementById("csKdkmp");
+  const selectedSlug = String(csSelect.value || "").trim();
+  const selectedOpt = csSelect.options[csSelect.selectedIndex];
+  const namaKdkmp = (selectedOpt && selectedOpt.dataset.name) ? selectedOpt.dataset.name : selectedSlug;
+  const kecamatan = document.getElementById("csKecamatan").value;
+  const kabupaten = document.getElementById("csKabupaten").value;
+  const desaKecamatan = selectedSlug || buildDesaKecamatanSlug(namaKdkmp, kecamatan);
 
   if (!tanggalTransaksi || !namaKdkmp) {
     return alert("Tanggal Transaksi dan Outlet KDKMP wajib diisi.");
   }
 
-  const targetKdkmpKey = normalizeKdkmpKey(namaKdkmp);
   const isDuplicate = appData.closeShift.some(item => {
-    const itemKdkmpKey = normalizeKdkmpKey(item.namaKdkmp);
+    const itemSlug = getItemDesaKecamatan(item);
     const itemTgl = normalizeDateForInput(item.tanggalTransaksi);
-    return itemKdkmpKey === targetKdkmpKey && itemTgl === tanggalTransaksi;
+    return itemSlug === desaKecamatan && itemTgl === tanggalTransaksi;
   });
 
   if (isDuplicate) {
     return alert(
-      `Gagal disimpan! Laporan Close Shift untuk "${namaKdkmp}" pada tanggal ${tanggalTransaksi} sudah tercatat (tidak boleh double input di tanggal yang sama).`
+      `Gagal disimpan! Laporan Close Shift untuk "${namaKdkmp}" (Kec. ${kecamatan}) pada tanggal ${tanggalTransaksi} sudah tercatat (tidak boleh double input di tanggal yang sama).`
     );
   }
 
@@ -643,9 +786,10 @@ async function handleCloseShiftSubmit(e) {
       emailSales: currentUser.email,
       noHpSales: currentUser.noHp,
       tanggalTransaksi: tanggalTransaksi,
-      kabupaten: document.getElementById("csKabupaten").value,
-      kecamatan: document.getElementById("csKecamatan").value,
+      kabupaten: kabupaten,
+      kecamatan: kecamatan,
       namaKdkmp: namaKdkmp,
+      desaKecamatan: desaKecamatan,
       omsetHarian: omsetHarianDikurangiNonTunai,
       omsetCloseShiftAsli: omsetCloseShift,
       nonTunai: nonTunai,
@@ -667,8 +811,9 @@ async function handleCloseShiftSubmit(e) {
       const mm = String(now.getMonth() + 1).padStart(2, "0");
       const dd = String(now.getDate()).padStart(2, "0");
       document.getElementById("csTanggal").value = `${yyyy}-${mm}-${dd}`;
-      if (currentUser.role !== "Admin" && currentUser.namaKdkmp) {
-        document.getElementById("csKdkmp").value = currentUser.namaKdkmp;
+      if (currentUser.role !== "Admin") {
+        const userSlug = getItemDesaKecamatan(currentUser);
+        if (userSlug) document.getElementById("csKdkmp").value = userSlug;
         autoFillWilayah("cs");
       }
 
@@ -690,6 +835,10 @@ async function handleSetorOmsetSubmit(e) {
   const fileInput = document.getElementById("soBukti");
   if (!fileInput.files.length) return alert("Harap unggah foto bukti transfer.");
 
+  const namaKdkmp = document.getElementById("soKdkmp").value;
+  const kecamatan = document.getElementById("soKecamatan").value;
+  const desaKecamatan = buildDesaKecamatanSlug(namaKdkmp, kecamatan);
+
   showLoading("Mengunggah bukti & menyimpan Setor Omset...");
   try {
     const base64Img = await fileToBase64(fileInput.files[0]);
@@ -701,8 +850,9 @@ async function handleSetorOmsetSubmit(e) {
       noHpPenyetor: currentUser.noHp,
       tanggalTransaksi: document.getElementById("soTanggal").value,
       kabupaten: document.getElementById("soKabupaten").value,
-      kecamatan: document.getElementById("soKecamatan").value,
-      namaKdkmp: document.getElementById("soKdkmp").value,
+      kecamatan: kecamatan,
+      namaKdkmp: namaKdkmp,
+      desaKecamatan: desaKecamatan,
       omsetCloseShift: Number(document.getElementById("soOmsetCs").value || 0),
       nonTunai: Number(document.getElementById("soNonTunai").value || 0),
       nominalTransfer: Number(document.getElementById("soNominalTransfer").value || 0),
@@ -730,16 +880,19 @@ async function handleSetorOmsetSubmit(e) {
 function renderDashboard() {
   const monthFilter = document.getElementById("filterMonth").value;
   const kdkmpFilter = document.getElementById("filterKdkmp").value;
+  const dupSet = getDuplicateNameSet(appData.masterKdkmp);
 
   const filteredCs = appData.closeShift.filter(item => {
     const matchMonth = !monthFilter || item.tanggalTransaksi.startsWith(monthFilter);
-    const matchKdkmp = kdkmpFilter === "ALL" || item.namaKdkmp === kdkmpFilter;
+    const itemSlug = getItemDesaKecamatan(item);
+    const matchKdkmp = kdkmpFilter === "ALL" || itemSlug === kdkmpFilter || item.namaKdkmp === kdkmpFilter;
     return matchMonth && matchKdkmp;
   });
 
   const filteredSo = appData.setorOmset.filter(item => {
     const matchMonth = !monthFilter || item.tanggalTransaksi.startsWith(monthFilter);
-    const matchKdkmp = kdkmpFilter === "ALL" || item.namaKdkmp === kdkmpFilter;
+    const itemSlug = getItemDesaKecamatan(item);
+    const matchKdkmp = kdkmpFilter === "ALL" || itemSlug === kdkmpFilter || item.namaKdkmp === kdkmpFilter;
     return matchMonth && matchKdkmp;
   });
 
@@ -758,12 +911,13 @@ function renderDashboard() {
   tbodyCs.innerHTML = filteredCs.length ? "" : '<tr><td colspan="9" class="text-center text-muted py-3">Belum ada data Close Shift pada periode ini.</td></tr>';
   filteredCs.forEach(item => {
     const bruto = item.omsetHarian + item.nonTunai;
+    const outletLabel = formatOutletLabel(item.namaKdkmp, item.kecamatan, dupSet);
     const linkBukti = item.buktiUrl ? `<a href="${item.buktiUrl}" target="_blank" class="btn btn-sm btn-outline-success"><i class="bi bi-image"></i></a>` : "-";
     tbodyCs.innerHTML += `
       <tr>
         <td>${item.tanggalTransaksi}</td>
         <td><span class="badge bg-light text-dark border">${item.idShift}</span></td>
-        <td class="fw-semibold">${item.namaKdkmp}</td>
+        <td class="fw-semibold">${outletLabel}</td>
         <td>${item.namaSales}</td>
         <td class="text-end fw-bold text-success">${formatRupiah(item.omsetHarian)}</td>
         <td class="text-end text-primary fw-semibold">${formatRupiah(item.nonTunai)}</td>
@@ -779,6 +933,7 @@ function renderDashboard() {
   filteredSo.forEach(item => {
     const selisih = item.nominalTransfer - item.omsetCloseShift;
     const selisihClass = selisih < 0 ? "text-danger fw-bold" : "text-success fw-semibold";
+    const outletLabel = formatOutletLabel(item.namaKdkmp, item.kecamatan, dupSet);
     const linkBukti = item.buktiUrl ? `<a href="${item.buktiUrl}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-image"></i></a>` : "-";
     tbodySo.innerHTML += `
       <tr>
@@ -787,7 +942,7 @@ function renderDashboard() {
           <div class="fw-semibold">${item.idSetor}</div>
           <div class="text-muted" style="font-size:11px;">Ref: ${item.idShift}</div>
         </td>
-        <td class="fw-semibold">${item.namaKdkmp}</td>
+        <td class="fw-semibold">${outletLabel}</td>
         <td>${item.namaPenyetor}</td>
         <td class="text-end">${formatRupiah(item.omsetCloseShift)}</td>
         <td class="text-end text-primary fw-semibold">${formatRupiah(item.nonTunai)}</td>
@@ -804,9 +959,11 @@ function renderDashboard() {
 // ==========================================
 function renderUsersTable() {
   const tbody = document.getElementById("tbodyUsers");
+  const dupSet = getDuplicateNameSet(appData.masterKdkmp);
   tbody.innerHTML = "";
   appData.users.forEach(u => {
     const isActive = u.roleStatus.toLowerCase().includes("active");
+    const outletLabel = formatOutletLabel(u.namaKdkmp, u.kecamatan, dupSet);
     const badge = isActive
       ? `<span class="badge bg-success">${u.roleStatus}</span>`
       : `<span class="badge bg-warning text-dark">${u.roleStatus}</span>`;
@@ -819,7 +976,7 @@ function renderUsersTable() {
         <td class="fw-semibold">${u.nama}</td>
         <td>${u.email}</td>
         <td>${u.noHp}</td>
-        <td>${u.namaKdkmp}</td>
+        <td>${outletLabel}</td>
         <td>${badge}</td>
         <td>${u.email === currentUser.email ? "-" : actionBtn}</td>
       </tr>
